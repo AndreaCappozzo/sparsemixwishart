@@ -3,7 +3,9 @@ em_sparse_mix_wishart <- function(data,
                                   penalty,
                                   penalize_diag,
                                   control,
-                                  data_dim=data_dim){
+                                  data_dim,
+                                  hc_init) {
+
   p <- data_dim[1]
   N <- data_dim[3]
 
@@ -16,8 +18,12 @@ em_sparse_mix_wishart <- function(data,
   n_random_start <-  control$n_random_start
 
   # initialization of z -----------------------------------------------------------------
-  initialization <- sample(1:K,size = N,replace = TRUE) # FIXME bring it outside and consider or multiple random init or distance-based hc
-  z <- mclust::unmap(initialization)
+  class_init <- if(is.null(hc_init)) {
+    sample(1:K, size = N, replace = TRUE)
+  } else {
+    stats::cutree(hc_init, k = K)
+  }
+  z <- mclust::unmap(class_init)
   nu <- rep(p,K)
   n_K <- colSums(z)
   weighted_S <- weighted_sample_S_calculator(data = data,z = z,n_K = n_K,p = p)

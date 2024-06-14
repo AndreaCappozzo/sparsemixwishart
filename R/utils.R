@@ -1,14 +1,16 @@
 #' @export
 EM_controls <- function(tol = c(1e-05),
                         max_iter = 1e03,
-                        # type_start = c("hc", "random"),
+                        type_start = c("hc", "random"),
+                        linkage_hc_start= "ward.D",
                         # n_subset_start = NULL,
                         n_random_start = 50)
   # EM control parameters
 {
   list(tol = tol,
        max_iter = max_iter,
-       # type_start = match.arg( type_start, choices = eval(formals(EM_controls)$type_start) ),
+       type_start = match.arg( type_start, choices = eval(formals(EM_controls)$type_start) ),
+       linkage_hc_start= linkage_hc_start,
        # n_subset_start = n_subset_start,
        n_random_start = n_random_start)
 }
@@ -91,6 +93,7 @@ M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, penalty, tol, max_iter, 
   crit_Q_M <- TRUE
   iter_Q_M <- 0
   Q_M <- Q_M_prev <- -.Machine$double.xmax
+  # Q_M_vec <- NULL
 
   while (crit_Q_M) {
     # Calculate weighted_S using weighted_sample_S_calculator function
@@ -120,7 +123,7 @@ M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, penalty, tol, max_iter, 
       Sigma_inv[, , k] <- solve(Sigma[, , k])
 
     # Compute nu for each k
-      nu[k] <- uniroot(
+      nu[k] <- stats::uniroot(
         f = nu_k_root_finder_equation_cpp,
         interval = c((p - 1) + sqrt(.Machine$double.eps), N),
         data = data,
@@ -139,6 +142,7 @@ M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, penalty, tol, max_iter, 
 
     err_Q_M <- abs(Q_M - Q_M_prev) / (1 + abs(Q_M))
     Q_M_prev <- Q_M
+    # Q_M_vec <- c(Q_M_vec, Q_M)
 
     crit_Q_M <- (err_Q_M > tol & iter_Q_M < max_iter)
     iter_Q_M <- iter_Q_M + 1  # Increment iteration counter

@@ -42,6 +42,14 @@ sparsemixwishart <- function(data,
     ipbar <- 0
   }
 
+  # Initialization performed via hierarchical clustering calcolating distances between covariance matrices, following
+  # Non-Euclidean statistics for covariance matrices, with applications to diffusion tensor imaging (Dryden2009)
+  hc_init <- if ( control$type_start == "hc" ) {
+    data_vec <- matrix(data, N, p*p, byrow = TRUE)
+    Dist_cov_init <- dist(data_vec, method = "euclidean") # Euclidean metric is considered
+    stats::hclust(d = Dist_cov_init, method = control$linkage_hc_start)
+  } else NULL
+
   for (model in 1:n_different_models) {
     models_container[[model]] <-
       tryCatch(em_sparse_mix_wishart(
@@ -51,6 +59,7 @@ sparsemixwishart <- function(data,
         penalize_diag = penalize_diag,
         control = control,
         data_dim=data_dim,
+        hc_init=hc_init
       ),error = function(e) {
         list(bic = NA)
       })
