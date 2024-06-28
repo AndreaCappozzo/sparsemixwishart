@@ -17,4 +17,5 @@ Imports:
     LaplacesDemon,
     mclust,
     Rcpp,
+    shapes,
     stats
