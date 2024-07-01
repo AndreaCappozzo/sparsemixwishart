@@ -1,9 +1,9 @@
 # WRAPPER FUNCTION
-# Function for fitting Sparse Mixture of matrix Wishart for Model-based Clustering  ---------------------
+# Function for fitting Sparse Mixture of Wishart distributions for Model-based Clustering  of cov objects ---------------------
 #' @param data
 #' @param K
 #' @param penalty
-#' @param penalize_diag
+#' @param P
 #' @param control
 #' @param verbose
 #'
@@ -11,7 +11,7 @@
 sparsemixwishart <- function(data,
                              K = 2,
                              penalty = 10,
-                             penalize_diag=FALSE,
+                             P=NULL, # arbitrary p x p matrix with nonnegative elements (see Sparse estimation of a covariance matrix Bien 2011)
                              control = EM_controls(),
                              verbose = interactive()) {
 
@@ -56,7 +56,7 @@ sparsemixwishart <- function(data,
         data = data,
         K = all_hyperparameters[model, "K"],
         penalty = all_hyperparameters[model, "penalty"],
-        penalize_diag = penalize_diag,
+        P = P,
         control = control,
         data_dim=data_dim,
         hc_init=hc_init

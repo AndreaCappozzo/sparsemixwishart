@@ -38,7 +38,7 @@ weighted_sample_S_calculator <- function(data, z, p, n_K) {
     S_weighted[, , k] <- apply(weighted_data, MARGIN = c(1, 2), FUN = sum) /
       n_K[k]
   }
-  S_weighted = S_weighted
+  S_weighted
   # out <- list(weighted_data=weighted_data, S_k_weighted=S_k_weighted)
   # out
 }
@@ -71,7 +71,7 @@ log_dens_pro_calculator <- function(data, nu, Sigma, pro, N, K) {
   return(log_dens_pro)
 }
 
-Q_function_calculator <- function(data, nu, Sigma, pro, z, N, K) {
+Q_function_calculator <- function(data, nu, Sigma, pro, z, N, K,LAMBDA) {
   # Calculate log density
   log_dens_pro <- log_dens_pro_calculator(
     data = data,
@@ -82,18 +82,26 @@ Q_function_calculator <- function(data, nu, Sigma, pro, z, N, K) {
     K = K
   )
 
+  penalty_term <- sum(sapply(1:K, function(k)  sum(abs(LAMBDA[,,1]*Sigma[,,k]))))
+
   # Calculate Q function
-  Q_function <- sum(log_dens_pro * z)
+  Q_function <- sum(log_dens_pro * z) - penalty_term
 
   return(Q_function)
 }
 
 
-M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, penalty, tol, max_iter, N, pro) {
+M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, LAMBDA, tol, max_iter, N, pro) {
+
   crit_Q_M <- TRUE
   iter_Q_M <- 0
   Q_M <- Q_M_prev <- -.Machine$double.xmax
   # Q_M_vec <- NULL
+
+  # Initialize Sigma and Sigma_inv arrays
+  Sigma <- array(0, dim = c(p, p, K))
+  Sigma_inv <- array(0, dim = c(p, p, K))
+
 
   while (crit_Q_M) {
     # Calculate weighted_S using weighted_sample_S_calculator function
@@ -107,20 +115,19 @@ M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, penalty, tol, max_iter, 
     # Scale weighted_S by nu
     S_tilde <- sweep(weighted_S, MARGIN = 3, STATS = nu, FUN = "/")
 
-    # Initialize Sigma and Sigma_inv arrays
-    Sigma <- array(0, dim = c(p, p, K))
-    Sigma_inv <- array(0, dim = c(p, p, K))
-
-
     for (k in 1:K) {
-      # Compute Sigma and Sigma_inv for each k
-      Sigma[, , k] <- covglasso::covglasso(
+
+      covglasso_tmp <- covglasso::covglasso(
         S = S_tilde[, , k],
-        n = n_K[k],
-        # not used
-        lambda = 2 * penalty / (n_K[k] * nu[k])
-      )$sigma
-      Sigma_inv[, , k] <- solve(Sigma[, , k])
+        n = n_K[k], # not used
+        lambda = 2 * LAMBDA / (n_K[k] * nu[k]),
+        penalize.diag = TRUE
+      )
+
+      # Compute Sigma and Sigma_inv for each k
+      Sigma[, , k] <- covglasso_tmp$sigma
+
+      Sigma_inv[, , k] <- covglasso_tmp$omega
 
     # Compute nu for each k
       nu[k] <- stats::uniroot(
@@ -138,7 +145,7 @@ M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, penalty, tol, max_iter, 
     # Sanity check: estimated degrees of freedom must be greater or equal than p
     nu <- ifelse(nu < p, p, nu)
 
-    Q_M <- Q_function_calculator(data, nu, Sigma, pro, z,N, K)
+    Q_M <- Q_function_calculator(data, nu, Sigma, pro, z,N, K,LAMBDA)
 
     err_Q_M <- abs(Q_M - Q_M_prev) / (1 + abs(Q_M))
     Q_M_prev <- Q_M

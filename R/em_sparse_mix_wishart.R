@@ -1,7 +1,7 @@
 em_sparse_mix_wishart <- function(data,
                                   K,
                                   penalty,
-                                  penalize_diag,
+                                  P,
                                   control,
                                   data_dim,
                                   hc_init) {
@@ -9,8 +9,13 @@ em_sparse_mix_wishart <- function(data,
   p <- data_dim[1]
   N <- data_dim[3]
 
-  # if (!is.matrix(penalty)) penalty <- matrix(penalty, nrow = p, ncol = p) # FIXME need to investigate how to give a matrix to covglasso in order to have different entry-wise penalties
-  # if (penalize_diag == FALSE) diag(penalty) <- 0
+  P <- if(is.null(P)){
+    matrix(data = 1,nrow = p,ncol = p)
+  } else{
+    P
+  }
+
+  LAMBDA <- array(P*penalty,dim = c(p,p,1)) # an array of dims p x p x 1, to be used with the covglasso package
 
   # store EM parameters
   tol <- control$tol
@@ -31,9 +36,12 @@ em_sparse_mix_wishart <- function(data,
   Sigma <- Sigma_inv <- array(dim = c(p,p,K))
 
   for (k in 1:K) {
-    Sigma[, , k] <- covglasso::covglasso(S = S_tilde[, , k],
-                                           n = n_K[k], # not used
-                                           lambda = 2 * penalty / (n_K[k] * nu[k]))$sigma
+    Sigma[, , k] <- covglasso::covglasso(
+      S = S_tilde[, , k],
+      n = n_K[k], # not used
+      lambda = 2 * LAMBDA / (n_K[k] * nu[k]),
+      penalize.diag = TRUE
+    )$sigma
   }
 
 
@@ -53,7 +61,7 @@ em_sparse_mix_wishart <- function(data,
     pro <- n_K / N
 
     # Sigma and nu
-    m_step_output_Sigma_nu <- M_step_sigma_and_nu(data, z, n_K, p, K, nu, penalty, tol, max_iter, N, pro)
+    m_step_output_Sigma_nu <- M_step_sigma_and_nu(data, z, n_K, p, K, nu, LAMBDA, tol, max_iter, N, pro)
 
     Sigma <- m_step_output_Sigma_nu$Sigma
     nu <- m_step_output_Sigma_nu$nu
@@ -65,7 +73,7 @@ em_sparse_mix_wishart <- function(data,
     # Log lik and objective function calculation ------------------------------
     loglik <- sum(e_step_output$loglik_i)
 
-    penalty_term <- penalty * sum(sapply(1:K, function(k)  sum(abs(Sigma[,,k]))))
+    penalty_term <- sum(sapply(1:K, function(k)  sum(abs(LAMBDA[,,1]*Sigma[,,k]))))
 
     loglik_pen <- loglik - penalty_term
 
