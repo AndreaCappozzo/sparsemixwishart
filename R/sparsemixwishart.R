@@ -73,6 +73,10 @@ sparsemixwishart <- function(data,
   models_BICS <- sapply(models_container, "[[", "bic")
   max_bic_model <- which.max(models_BICS)
 
+  if(length(max_bic_model)==0){ # Exiting the function if no model converged
+    return(stop("None of the considered models converged",call. = FALSE))
+  }
+
   selected_model <- models_container[[max_bic_model]]
   selected_model$BIC <- cbind(all_hyperparameters, bic=models_BICS)
 

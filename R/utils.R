@@ -4,7 +4,8 @@ EM_controls <- function(tol = c(1e-05),
                         type_start = c("hc", "random"),
                         linkage_hc_start= "ward.D",
                         # n_subset_start = NULL,
-                        n_random_start = 50)
+                        n_random_start = 50,
+                        nu_max=NULL)
   # EM control parameters
 {
   list(tol = tol,
@@ -12,7 +13,8 @@ EM_controls <- function(tol = c(1e-05),
        type_start = match.arg( type_start, choices = eval(formals(EM_controls)$type_start) ),
        linkage_hc_start= linkage_hc_start,
        # n_subset_start = n_subset_start,
-       n_random_start = n_random_start)
+       n_random_start = n_random_start,
+       nu_max=nu_max)
 }
 
 
@@ -91,7 +93,7 @@ Q_function_calculator <- function(data, nu, Sigma, pro, z, N, K,LAMBDA) {
 }
 
 
-M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, LAMBDA, tol, max_iter, N, pro) {
+M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, LAMBDA, tol, max_iter, N, pro, nu_max) {
 
   crit_Q_M <- TRUE
   iter_Q_M <- 0
@@ -130,16 +132,20 @@ M_step_sigma_and_nu <- function(data, z, n_K, p, K, nu, LAMBDA, tol, max_iter, N
       Sigma_inv[, , k] <- covglasso_tmp$omega
 
     # Compute nu for each k
-      nu[k] <- stats::uniroot(
-        f = nu_k_root_finder_equation_cpp,
-        interval = c((p - 1) + sqrt(.Machine$double.eps), N),
-        data = data,
-        p = p,
-        z_k = z[, k],
-        n_k = n_K[k],
-        Sigma_inv_k = Sigma_inv[, , k],
-        N = N
-      )$root
+      nu[k] <- tryCatch(
+        stats::uniroot(
+          f = nu_k_root_finder_equation_cpp,
+          interval = c((p - 1) + sqrt(.Machine$double.eps), nu_max),
+          data = data,
+          p = p,
+          z_k = z[, k],
+          n_k = n_K[k],
+          Sigma_inv_k = Sigma_inv[, , k],
+          N = N
+        )$root,
+        error = function(e)
+          print("Error in numerically finding nu_k: values at end points of the function not of opposite sign. Try to increase nu_max")
+      )
     }
 
     # Sanity check: estimated degrees of freedom must be greater or equal than p

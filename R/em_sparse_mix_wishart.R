@@ -22,6 +22,9 @@ em_sparse_mix_wishart <- function(data,
   max_iter <- control$max_iter
   n_random_start <-  control$n_random_start
 
+  # Define upper bound for nu uniroot search
+  nu_max <- ifelse(is.null(control$nu_max), max(N,3*p), control$nu_max)
+
   # initialization of z -----------------------------------------------------------------
   class_init <- if(is.null(hc_init)) {
     sample(1:K, size = N, replace = TRUE)
@@ -61,7 +64,7 @@ em_sparse_mix_wishart <- function(data,
     pro <- n_K / N
 
     # Sigma and nu
-    m_step_output_Sigma_nu <- M_step_sigma_and_nu(data, z, n_K, p, K, nu, LAMBDA, tol, max_iter, N, pro)
+    m_step_output_Sigma_nu <- M_step_sigma_and_nu(data, z, n_K, p, K, nu, LAMBDA, tol, max_iter, N, pro, nu_max)
 
     Sigma <- m_step_output_Sigma_nu$Sigma
     nu <- m_step_output_Sigma_nu$nu
