@@ -12,7 +12,8 @@ of the model relies on the maximization of a penalized likelihood, with
 a specifically tailored covariance graphical lasso penalty.
 
 This repository is associated with the paper Cappozzo, Casa (2024+)
-*FIXME paper title* [FIXME arxiv link](FIXME_arxiv_link)
+*Model-based clustering for covariance matrices via penalized Wishart
+mixture models* <!-- [FIXME arxiv link](FIXME_arxiv_link) -->
 
 ## Installation
 
