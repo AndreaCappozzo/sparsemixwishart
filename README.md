@@ -13,7 +13,7 @@ a specifically tailored covariance graphical lasso penalty.
 
 This repository is associated with the paper Cappozzo, Casa (2024+)
 *Model-based clustering for covariance matrices via penalized Wishart
-mixture models* <!-- [FIXME arxiv link](FIXME_arxiv_link) -->
+mixture models* <https://arxiv.org/abs/2408.17040>
 
 ## Installation
 
