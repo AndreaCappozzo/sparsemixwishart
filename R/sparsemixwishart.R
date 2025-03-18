@@ -18,6 +18,9 @@ sparsemixwishart <- function(data,
   # The best model is the one that maximizes the BIC
 
   call <- match.call()
+
+  start_time <- Sys.time()
+
   data_dim <- dim(data)
 
   p <- data_dim[1]
@@ -79,6 +82,9 @@ sparsemixwishart <- function(data,
 
   selected_model <- models_container[[max_bic_model]]
   selected_model$BIC <- cbind(all_hyperparameters, bic=models_BICS)
+
+  end_time <- Sys.time()
+  selected_model$elapsed_time <- end_time - start_time
 
   if (verbose) {
     cat(
